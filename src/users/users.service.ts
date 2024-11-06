@@ -12,6 +12,7 @@ import { validate } from 'uuid';
 @Injectable()
 export class UsersService {
   private db: Map<string, User>;
+
   constructor() {
     this.db = new Map<string, User>();
   }
@@ -57,8 +58,6 @@ export class UsersService {
     }
 
     const user = await this.findOne(id);
-
-    console.log(user);
 
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
