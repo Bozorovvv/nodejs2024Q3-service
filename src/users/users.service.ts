@@ -11,7 +11,7 @@ import { validate } from 'uuid';
 
 @Injectable()
 export class UsersService {
-  private db: Map<string, User>;
+  public db: Map<string, User>;
 
   constructor() {
     this.db = new Map<string, User>();

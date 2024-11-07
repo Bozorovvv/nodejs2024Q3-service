@@ -10,7 +10,7 @@ import { validate } from 'uuid';
 
 @Injectable()
 export class AlbumService {
-  private db: Map<string, Album>;
+  public db: Map<string, Album>;
 
   constructor() {
     this.db = new Map<string, Album>();
@@ -50,6 +50,8 @@ export class AlbumService {
   }
 
   async update(id: string, updateAlbumDto: UpdateAlbumDto): Promise<Album> {
+    const { name, year, artistId } = updateAlbumDto;
+
     if (!validate(id)) {
       throw new BadRequestException('UUID is not valid');
     }
@@ -60,19 +62,19 @@ export class AlbumService {
       throw new NotFoundException(`Album with ID ${id} not found`);
     }
 
-    if (updateAlbumDto.name !== undefined) {
-      album.name = updateAlbumDto.name;
+    if (name) {
+      album.name = name;
     }
 
-    if (updateAlbumDto.year !== undefined) {
-      album.year = updateAlbumDto.year;
+    if (year) {
+      album.year = year;
     }
 
-    if (updateAlbumDto.artistId !== undefined) {
-      if (updateAlbumDto.artistId && !validate(updateAlbumDto.artistId)) {
+    if (artistId !== undefined) {
+      if (artistId && !validate(artistId)) {
         throw new BadRequestException('Artist UUID is not valid');
       }
-      album.artistId = updateAlbumDto.artistId;
+      album.artistId = artistId;
     }
 
     this.db.set(id, album);

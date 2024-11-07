@@ -10,7 +10,7 @@ import { validate } from 'uuid';
 
 @Injectable()
 export class ArtistService {
-  private db: Map<string, Artist>;
+  public db: Map<string, Artist>;
 
   constructor() {
     this.db = new Map<string, Artist>();
