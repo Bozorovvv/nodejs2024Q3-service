@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,12 +9,20 @@ import { CreateAlbumDto } from './dto/create-album.dto';
 import { UpdateAlbumDto } from './dto/update-album.dto';
 import { Album } from './entities/album.entity';
 import { validate } from 'uuid';
+import { FavoritesService } from 'src/favorites/favorites.service';
+import { FavoritesType } from 'src/favorites/types/types';
+import { TrackService } from 'src/track/track.service';
 
 @Injectable()
 export class AlbumService {
   public db: Map<string, Album>;
 
-  constructor() {
+  constructor(
+    @Inject(forwardRef(() => FavoritesService))
+    private favoritesService: FavoritesService,
+    @Inject(forwardRef(() => TrackService))
+    private trackService: TrackService,
+  ) {
     this.db = new Map<string, Album>();
   }
 
@@ -92,6 +102,32 @@ export class AlbumService {
       throw new NotFoundException(`Album with ID ${id} not found`);
     }
 
+    await this.removeAlbumFromFavorites(id);
+    await this.removeAlbumFromTracks(id);
+
     this.db.delete(id);
+  }
+
+  async removeAlbumFromFavorites(albumId: string) {
+    if (this.favoritesService.IsThereAlbum(albumId)) {
+      await this.favoritesService.deleteFavorite(albumId, FavoritesType.ALBUM);
+    }
+  }
+
+  async removeAlbumFromTracks(albumId: string) {
+    const tracks = await this.trackService.getTracksByAlbumId(albumId);
+
+    if (tracks.length > 0) {
+      for (const track of tracks) {
+        track.albumId = null;
+        this.trackService.update(track.id, track);
+      }
+    }
+  }
+
+  async getAlbumsByArtistId(artistId: string): Promise<Album[]> {
+    return Array.from(this.db.values()).filter(
+      (album) => album.artistId === artistId,
+    );
   }
 }

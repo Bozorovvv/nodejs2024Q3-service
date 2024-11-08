@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,12 +9,23 @@ import { CreateArtistDto } from './dto/create-artist.dto';
 import { UpdateArtistDto } from './dto/update-artist.dto';
 import { Artist } from './entities/artist.entity';
 import { validate } from 'uuid';
+import { FavoritesService } from 'src/favorites/favorites.service';
+import { FavoritesType } from 'src/favorites/types/types';
+import { AlbumService } from 'src/album/album.service';
+import { TrackService } from 'src/track/track.service';
 
 @Injectable()
 export class ArtistService {
   public db: Map<string, Artist>;
 
-  constructor() {
+  constructor(
+    @Inject(forwardRef(() => FavoritesService))
+    private favoritesService: FavoritesService,
+    @Inject(forwardRef(() => AlbumService))
+    private albumService: AlbumService,
+    @Inject(forwardRef(() => TrackService))
+    private trackService: TrackService,
+  ) {
     this.db = new Map<string, Artist>();
   }
 
@@ -90,6 +103,41 @@ export class ArtistService {
       throw new NotFoundException(`Artist with ID ${id} not found`);
     }
 
+    await this.removeArtistFromFavorites(id);
+    await this.removeArtistFromAlbums(id);
+    await this.removeArtistFromTracks(id);
+
     this.db.delete(id);
+  }
+
+  async removeArtistFromFavorites(artistId: string) {
+    if (this.favoritesService.IsThereArtist(artistId)) {
+      await this.favoritesService.deleteFavorite(
+        artistId,
+        FavoritesType.ARTIST,
+      );
+    }
+  }
+
+  async removeArtistFromAlbums(artistId: string) {
+    const albums = await this.albumService.getAlbumsByArtistId(artistId);
+
+    if (albums.length > 0) {
+      for (const album of albums) {
+        album.artistId = null;
+        this.albumService.update(album.id, album);
+      }
+    }
+  }
+
+  async removeArtistFromTracks(artistId: string) {
+    const tracks = await this.trackService.getTracksByArtistId(artistId);
+
+    if (tracks.length > 0) {
+      for (const track of tracks) {
+        track.artistId = null;
+        this.trackService.update(track.id, track);
+      }
+    }
   }
 }

@@ -1,6 +1,14 @@
 import { v4 as uuidv4 } from 'uuid';
 
-export class Track {
+export interface ITrack {
+  id: string;
+  name: string;
+  artistId: string | null;
+  albumId: string | null;
+  duration: number;
+}
+
+export class Track implements ITrack {
   id: string;
   name: string;
   artistId: string | null;

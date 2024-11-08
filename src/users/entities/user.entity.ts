@@ -1,6 +1,15 @@
 import { v4 as uuidv4 } from 'uuid';
 
-export class User {
+export interface IUser {
+  id: string;
+  login: string;
+  password: string;
+  version: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export class User implements IUser {
   id: string;
   login: string;
   password: string;
