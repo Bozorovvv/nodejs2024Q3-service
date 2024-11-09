@@ -30,14 +30,14 @@ export class ArtistService {
   }
 
   async create(createArtistDto: CreateArtistDto): Promise<Artist> {
+    if (!createArtistDto.name || typeof createArtistDto.grammy !== 'boolean') {
+      throw new BadRequestException('Name and grammy fields are required');
+    }
+
     const { name, grammy } = createArtistDto;
 
-    const existingArtist = Array.from(this.db.values()).find(
-      (artist) => artist.name === name,
-    );
-
-    if (existingArtist) {
-      throw new BadRequestException('Artist with this name already exists');
+    if (typeof name !== 'string' || typeof grammy !== 'boolean') {
+      throw new BadRequestException('Invalid data types');
     }
 
     const newArtist = new Artist(name, grammy);
@@ -45,7 +45,6 @@ export class ArtistService {
 
     return newArtist;
   }
-
   async findAll(): Promise<Artist[]> {
     return Array.from(this.db.values());
   }
@@ -63,33 +62,48 @@ export class ArtistService {
   }
 
   async update(id: string, updateArtistDto: UpdateArtistDto): Promise<Artist> {
-    const { newName, grammy } = updateArtistDto;
+    try {
+      if (!validate(id)) {
+        throw new BadRequestException('Invalid ID format');
+      }
 
-    if (!validate(id)) {
-      throw new BadRequestException('UUID is not valid');
-    }
+      if (!updateArtistDto || typeof updateArtistDto !== 'object') {
+        throw new BadRequestException('Invalid update data');
+      }
 
-    const artist = await this.findOne(id);
+      const { name, grammy } = updateArtistDto;
 
-    if (!artist) {
-      throw new NotFoundException(`Artist with ID ${id} not found`);
-    }
-    let isModified = false;
+      if (name !== undefined && typeof name !== 'string') {
+        throw new BadRequestException('Name must be a string');
+      }
 
-    if (newName !== undefined && artist.name !== newName) {
-      artist.name = newName;
-      isModified = true;
-    }
+      if (grammy !== undefined && typeof grammy !== 'boolean') {
+        throw new BadRequestException('Grammy must be a boolean');
+      }
 
-    if (grammy !== undefined && artist.grammy !== grammy) {
-      artist.grammy = grammy;
-      isModified = true;
-    }
+      const artist = this.db.get(id);
+      if (!artist) {
+        throw new NotFoundException(`Artist with ID ${id} not found`);
+      }
 
-    if (isModified) {
+      if (name !== undefined) {
+        artist.name = name;
+      }
+      if (grammy !== undefined) {
+        artist.grammy = grammy;
+      }
+
       this.db.set(id, artist);
+
+      return artist;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      } else if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw error;
     }
-    return artist;
   }
 
   async remove(id: string): Promise<void> {
@@ -110,8 +124,8 @@ export class ArtistService {
     this.db.delete(id);
   }
 
-  async removeArtistFromFavorites(artistId: string) {
-    if (this.favoritesService.IsThereArtist(artistId)) {
+  private async removeArtistFromFavorites(artistId: string) {
+    if (await this.favoritesService.IsThereArtist(artistId)) {
       await this.favoritesService.deleteFavorite(
         artistId,
         FavoritesType.ARTIST,
@@ -119,25 +133,19 @@ export class ArtistService {
     }
   }
 
-  async removeArtistFromAlbums(artistId: string) {
+  private async removeArtistFromAlbums(artistId: string) {
     const albums = await this.albumService.getAlbumsByArtistId(artistId);
-
-    if (albums.length > 0) {
-      for (const album of albums) {
-        album.artistId = null;
-        this.albumService.update(album.id, album);
-      }
+    for (const album of albums) {
+      album.artistId = null;
+      await this.albumService.update(album.id, album);
     }
   }
 
-  async removeArtistFromTracks(artistId: string) {
+  private async removeArtistFromTracks(artistId: string) {
     const tracks = await this.trackService.getTracksByArtistId(artistId);
-
-    if (tracks.length > 0) {
-      for (const track of tracks) {
-        track.artistId = null;
-        this.trackService.update(track.id, track);
-      }
+    for (const track of tracks) {
+      track.artistId = null;
+      await this.trackService.update(track.id, track);
     }
   }
 }
