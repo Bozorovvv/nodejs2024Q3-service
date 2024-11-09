@@ -26,3 +26,5 @@ export class User implements IUser {
     this.updatedAt = new Date();
   }
 }
+
+export type UserResponse = Omit<User, 'password'>;

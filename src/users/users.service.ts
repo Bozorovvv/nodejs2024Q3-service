@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './entities/user.entity';
+import { User, UserResponse } from './entities/user.entity';
 import { validate } from 'uuid';
 
 @Injectable()
@@ -17,7 +17,12 @@ export class UsersService {
     this.db = new Map<string, User>();
   }
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
+  private excludePassword(user: User): UserResponse {
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
+  async create(createUserDto: CreateUserDto): Promise<UserResponse> {
     const { login, password } = createUserDto;
 
     const existingUser = Array.from(this.db.values()).find(
@@ -31,14 +36,14 @@ export class UsersService {
     const newUser = new User(login, password);
     this.db.set(newUser.id, newUser);
 
-    return newUser;
+    return this.excludePassword(newUser);
   }
 
-  async findAll(): Promise<User[]> {
-    return Array.from(this.db.values());
+  async findAll(): Promise<UserResponse[]> {
+    return Array.from(this.db.values()).map(this.excludePassword);
   }
 
-  async findOne(id: string): Promise<User> {
+  async findOne(id: string): Promise<UserResponse> {
     if (!validate(id)) {
       throw new BadRequestException('UUID is not valid');
     }
@@ -47,17 +52,21 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    return user;
+
+    return this.excludePassword(user);
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+  async update(
+    id: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<UserResponse> {
     const { newPassword, oldPassword } = updateUserDto;
 
     if (!validate(id)) {
       throw new BadRequestException('UUID is not valid');
     }
 
-    const user = await this.findOne(id);
+    const user = this.db.get(id);
 
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
@@ -73,8 +82,10 @@ export class UsersService {
       user.version = user.version + 1;
       this.db.set(id, user);
 
-      return user;
+      return this.excludePassword(user);
     }
+
+    return this.excludePassword(user);
   }
 
   async remove(id: string): Promise<void> {
