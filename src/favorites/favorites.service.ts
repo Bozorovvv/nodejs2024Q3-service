@@ -41,15 +41,33 @@ export class FavoritesService {
 
   async getAllFavorites(): Promise<FavoritesResponse> {
     const artists = await Promise.all(
-      this.favorites.artists.map((id) => this.artistService.findOne(id)),
+      this.favorites.artists.map(async (id) => {
+        try {
+          return await this.artistService.findOne(id);
+        } catch {
+          return null;
+        }
+      }),
     );
 
     const albums = await Promise.all(
-      this.favorites.albums.map((id) => this.albumService.findOne(id)),
+      this.favorites.albums.map(async (id) => {
+        try {
+          return await this.albumService.findOne(id);
+        } catch {
+          return null;
+        }
+      }),
     );
 
     const tracks = await Promise.all(
-      this.favorites.tracks.map((id) => this.trackService.findOne(id)),
+      this.favorites.tracks.map(async (id) => {
+        try {
+          return await this.trackService.findOne(id);
+        } catch {
+          return null;
+        }
+      }),
     );
 
     return {
@@ -65,39 +83,48 @@ export class FavoritesService {
   ): Promise<{ message: string }> {
     this.validateUUID(id, type);
 
-    switch (type) {
-      case FavoritesType.ARTIST:
-        const artist = await this.artistService.findOne(id);
-        if (!artist)
-          throw new UnprocessableEntityException(`Artist with ${id} not found`);
-        if (this.IsThereArtist(id)) {
-          throw new ConflictException(`Artist with this ${id} already exists`);
-        } else {
+    try {
+      switch (type) {
+        case FavoritesType.ARTIST:
+          await this.artistService.findOne(id);
+          if (this.IsThereArtist(id)) {
+            throw new ConflictException(
+              `Artist with id ${id} already exists in favorites`,
+            );
+          }
           this.favorites.artists.push(id);
-        }
-        return { message: `Artist with id ${id} added to favorites` };
+          return { message: `Artist with id ${id} added to favorites` };
 
-      case FavoritesType.ALBUM:
-        const album = await this.albumService.findOne(id);
-        if (!album)
-          throw new UnprocessableEntityException(`Album with ${id} not found`);
-        if (this.IsThereAlbum(id)) {
-          throw new ConflictException(`Album with this ${id} already exists`);
-        } else {
+        case FavoritesType.ALBUM:
+          await this.albumService.findOne(id);
+          if (this.IsThereAlbum(id)) {
+            throw new ConflictException(
+              `Album with id ${id} already exists in favorites`,
+            );
+          }
           this.favorites.albums.push(id);
-        }
-        return { message: `Album with id ${id} added to favorites` };
+          return { message: `Album with id ${id} added to favorites` };
 
-      case FavoritesType.TRACK:
-        const track = await this.trackService.findOne(id);
-        if (!track)
-          throw new UnprocessableEntityException(`Track with ${id} not found`);
-        if (this.IsThereTrack(id)) {
-          throw new ConflictException(`Track with this ${id} already exists`);
-        } else {
+        case FavoritesType.TRACK:
+          await this.trackService.findOne(id);
+          if (this.IsThereTrack(id)) {
+            throw new ConflictException(
+              `Track with id ${id} already exists in favorites`,
+            );
+          }
           this.favorites.tracks.push(id);
-        }
-        return { message: `Track with id ${id} added to favorites` };
+          return { message: `Track with id ${id} added to favorites` };
+      }
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      if (error.status === 404) {
+        throw new UnprocessableEntityException(
+          `${type} with id ${id} not found`,
+        );
+      }
+      throw error;
     }
   }
 
@@ -113,33 +140,39 @@ export class FavoritesService {
     return this.favorites.tracks.includes(trackId);
   }
 
-  async deleteFavorite(
-    id: string,
-    type: FavoritesTypes,
-  ): Promise<{ message: string }> {
+  async deleteFavorite(id: string, type: FavoritesTypes): Promise<void> {
     this.validateUUID(id, type);
 
     switch (type) {
       case FavoritesType.ARTIST:
         const artistIndex = this.favorites.artists.indexOf(id);
-        if (artistIndex === -1)
-          throw new NotFoundException('Artist not found in favorites');
+        if (artistIndex === -1) {
+          throw new NotFoundException(
+            `Artist with id ${id} not found in favorites`,
+          );
+        }
         this.favorites.artists.splice(artistIndex, 1);
-        return { message: `Artist with id ${id} removed from favorites` };
+        break;
 
       case FavoritesType.ALBUM:
         const albumIndex = this.favorites.albums.indexOf(id);
-        if (albumIndex === -1)
-          throw new NotFoundException('Album not found in favorites');
+        if (albumIndex === -1) {
+          throw new NotFoundException(
+            `Album with id ${id} not found in favorites`,
+          );
+        }
         this.favorites.albums.splice(albumIndex, 1);
-        return { message: `Album with id ${id} removed from favorites` };
+        break;
 
       case FavoritesType.TRACK:
         const trackIndex = this.favorites.tracks.indexOf(id);
-        if (trackIndex === -1)
-          throw new NotFoundException('Track not found in favorites');
+        if (trackIndex === -1) {
+          throw new NotFoundException(
+            `Track with id ${id} not found in favorites`,
+          );
+        }
         this.favorites.tracks.splice(trackIndex, 1);
-        return { message: `Track with id ${id} removed from favorites` };
+        break;
     }
   }
 }

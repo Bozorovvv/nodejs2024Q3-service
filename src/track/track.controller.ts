@@ -3,13 +3,13 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   UsePipes,
   ValidationPipe,
   HttpCode,
   HttpStatus,
+  Put,
 } from '@nestjs/common';
 import { TrackService } from './track.service';
 import { CreateTrackDto } from './dto/create-track.dto';
@@ -44,7 +44,7 @@ export class TrackController {
     return this.trackService.findOne(id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @UsePipes(
     new ValidationPipe({
       whitelist: true,

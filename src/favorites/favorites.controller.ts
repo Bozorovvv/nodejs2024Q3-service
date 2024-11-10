@@ -1,4 +1,3 @@
-// favorites.controller.ts
 import {
   Controller,
   Get,
@@ -9,6 +8,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { FavoritesService } from './favorites.service';
+import { FavoritesType } from './types/types';
 
 @Controller('favs')
 export class FavoritesController {
@@ -22,36 +22,36 @@ export class FavoritesController {
   @Post('track/:id')
   @HttpCode(HttpStatus.CREATED)
   async addTrackToFavorites(@Param('id') id: string) {
-    return await this.favoritesService.addFavorite(id, 'track');
+    return await this.favoritesService.addFavorite(id, FavoritesType.TRACK);
   }
 
   @Delete('track/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  removeTrackFromFavorites(@Param('id') id: string) {
-    return this.favoritesService.deleteFavorite(id, 'track');
+  async removeTrackFromFavorites(@Param('id') id: string) {
+    return await this.favoritesService.deleteFavorite(id, FavoritesType.TRACK);
   }
 
   @Post('album/:id')
   @HttpCode(HttpStatus.CREATED)
   async addAlbumToFavorites(@Param('id') id: string) {
-    return await this.favoritesService.addFavorite(id, 'album');
+    return await this.favoritesService.addFavorite(id, FavoritesType.ALBUM);
   }
 
   @Delete('album/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  removeAlbumFromFavorites(@Param('id') id: string) {
-    return this.favoritesService.deleteFavorite(id, 'album');
+  async removeAlbumFromFavorites(@Param('id') id: string) {
+    return await this.favoritesService.deleteFavorite(id, FavoritesType.ALBUM);
   }
 
   @Post('artist/:id')
   @HttpCode(HttpStatus.CREATED)
   async addArtistToFavorites(@Param('id') id: string) {
-    return await this.favoritesService.addFavorite(id, 'artist');
+    return await this.favoritesService.addFavorite(id, FavoritesType.ARTIST);
   }
 
   @Delete('artist/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  removeArtistFromFavorites(@Param('id') id: string) {
-    return this.favoritesService.deleteFavorite(id, 'artist');
+  async removeArtistFromFavorites(@Param('id') id: string) {
+    return await this.favoritesService.deleteFavorite(id, FavoritesType.ARTIST);
   }
 }

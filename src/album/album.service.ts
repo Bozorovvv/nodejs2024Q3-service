@@ -29,13 +29,13 @@ export class AlbumService {
   async create(createAlbumDto: CreateAlbumDto): Promise<Album> {
     const { name, year, artistId } = createAlbumDto;
 
-    const existingAlbum = Array.from(this.db.values()).find(
-      (album) => album.name === name,
-    );
+    // const existingAlbum = Array.from(this.db.values()).find(
+    //   (album) => album.name === name,
+    // );
 
-    if (existingAlbum) {
-      throw new BadRequestException('Album with this name already exists');
-    }
+    // if (existingAlbum) {
+    //   throw new BadRequestException('Album with this name already exists');
+    // }
 
     const album = new Album(name, year, artistId || null);
     this.db.set(album.id, album);

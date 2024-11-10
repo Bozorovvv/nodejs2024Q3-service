@@ -3,13 +3,13 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   ValidationPipe,
   UsePipes,
   HttpCode,
   HttpStatus,
+  Put,
 } from '@nestjs/common';
 import { ArtistService } from './artist.service';
 import { CreateArtistDto } from './dto/create-artist.dto';
@@ -44,7 +44,7 @@ export class ArtistController {
     return await this.artistService.findOne(id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @HttpCode(HttpStatus.OK)
   async update(
     @Param('id') id: string,

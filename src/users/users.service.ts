@@ -18,11 +18,19 @@ export class UsersService {
   }
 
   private excludePassword(user: User): UserResponse {
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    const { password, ...rest } = user;
+    return {
+      ...rest,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
   async create(createUserDto: CreateUserDto): Promise<UserResponse> {
+    if (!createUserDto?.login || !createUserDto?.password) {
+      throw new BadRequestException('Login and password are required');
+    }
+
     const { login, password } = createUserDto;
 
     const existingUser = Array.from(this.db.values()).find(
@@ -40,7 +48,9 @@ export class UsersService {
   }
 
   async findAll(): Promise<UserResponse[]> {
-    return Array.from(this.db.values()).map(this.excludePassword);
+    return Array.from(this.db.values()).map((user) =>
+      this.excludePassword(user),
+    );
   }
 
   async findOne(id: string): Promise<UserResponse> {
@@ -60,7 +70,11 @@ export class UsersService {
     id: string,
     updateUserDto: UpdateUserDto,
   ): Promise<UserResponse> {
-    const { newPassword, oldPassword } = updateUserDto;
+    if (!updateUserDto?.oldPassword || !updateUserDto?.newPassword) {
+      throw new BadRequestException(
+        'Old password and new password are required',
+      );
+    }
 
     if (!validate(id)) {
       throw new BadRequestException('UUID is not valid');
@@ -72,18 +86,14 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    if (user.password !== oldPassword) {
+    if (user.password !== updateUserDto.oldPassword) {
       throw new ForbiddenException('Old password is incorrect');
     }
 
-    if (newPassword) {
-      user.password = newPassword;
-      user.updatedAt = new Date();
-      user.version = user.version + 1;
-      this.db.set(id, user);
-
-      return this.excludePassword(user);
-    }
+    user.password = updateUserDto.newPassword;
+    user.updatedAt = new Date().getTime();
+    user.version += 1;
+    this.db.set(id, user);
 
     return this.excludePassword(user);
   }
@@ -93,7 +103,7 @@ export class UsersService {
       throw new BadRequestException('UUID is not valid');
     }
 
-    const user = await this.findOne(id);
+    const user = this.db.get(id);
 
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);

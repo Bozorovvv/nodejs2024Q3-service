@@ -5,8 +5,8 @@ export interface IUser {
   login: string;
   password: string;
   version: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export class User implements IUser {
@@ -14,16 +14,16 @@ export class User implements IUser {
   login: string;
   password: string;
   version: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: number;
+  updatedAt: number;
 
   constructor(login: string, password: string) {
     this.id = uuidv4();
     this.login = login;
     this.password = password;
     this.version = 1;
-    this.createdAt = new Date();
-    this.updatedAt = new Date();
+    this.createdAt = new Date().getTime();
+    this.updatedAt = new Date().getTime();
   }
 }
 

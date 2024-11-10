@@ -3,13 +3,13 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   UsePipes,
   ValidationPipe,
   HttpCode,
   HttpStatus,
+  Put,
 } from '@nestjs/common';
 import { AlbumService } from './album.service';
 import { CreateAlbumDto } from './dto/create-album.dto';
@@ -44,7 +44,7 @@ export class AlbumController {
     return this.albumService.findOne(id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @UsePipes(
     new ValidationPipe({
       whitelist: true,
