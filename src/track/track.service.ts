@@ -26,15 +26,8 @@ export class TrackService {
   async create(createTrackDto: CreateTrackDto): Promise<Track> {
     const { name, albumId, duration, artistId } = createTrackDto;
 
-    // const existingTrack = Array.from(this.db.values()).find(
-    //   (album) => album.name === name,
-    // );
-
-    // if (existingTrack) {
-    //   throw new BadRequestException('Track with this name already exists');
-    // }
-
     const track = new Track(name, duration, artistId || null, albumId || null);
+
     this.db.set(track.id, track);
 
     return track;
