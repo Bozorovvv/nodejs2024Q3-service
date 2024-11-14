@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   api:
     build:
@@ -8,14 +7,33 @@ services:
     ports:
       - '4000:4000'
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/nestjs_db
+      - DATABASE_URL=postgres://postgres:postgres@pg:5432/nestjs
       - NODE_ENV=production
-    networks:
-      - app-network
+    # networks:
+    #   - app-network
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
+    command: sh -c "npx prisma generate --schema=./src/prisma/schema.prisma && npx prisma migrate dev --name init --schema=./src/prisma/schema.prisma && node dist/main"
 
-networks:
-  app-network:
-    driver: bridge
+  pg:
+    image: postgres:14
+    container_name: postgresdb
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=nestjs
+      - TZ=Asia/Tashkent
+      - PGTZ=Asia/Tashkent
+      - PGDATA=/var/lib/postgresql/data
+    ports:
+      - '15432:5432'
+    volumes:
+      - 'H:/docker/postgresql/data:/var/lib/postgresql/data'
+      - 'H:/docker/postgresql/conf/postgresql.conf:/etc/postgresql/postgresql.conf'
+    # networks:
+    #   - app_network # Connects PostgreSQL to the shared network
+# networks:
+#   app-network:
+#     driver: bridge
