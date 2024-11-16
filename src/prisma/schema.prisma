@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,7 +12,7 @@ model User {
   login     String   @unique
   password  String
   version   Int      @default(1)
-  createdAt BigInt   // Storing as BigInt since it's a timestamp in milliseconds
+  createdAt BigInt   
   updatedAt BigInt
 }
 
@@ -23,7 +22,6 @@ model Artist {
   grammy    Boolean   @default(false)
   albums    Album[]
   tracks    Track[]
-  favorites Favorites[]  @relation("ArtistToFavorites")
 }
 
 model Album {
@@ -33,7 +31,6 @@ model Album {
   artistId  String?
   artist    Artist?   @relation(fields: [artistId], references: [id], onDelete: SetNull)
   tracks    Track[]
-  favorites Favorites[]  @relation("AlbumToFavorites")
 }
 
 model Track {
@@ -44,12 +41,13 @@ model Track {
   duration  Int
   artist    Artist?   @relation(fields: [artistId], references: [id], onDelete: SetNull)
   album     Album?    @relation(fields: [albumId], references: [id], onDelete: SetNull)
-  favorites Favorites[]  @relation("TrackToFavorites")
 }
 
 model Favorites {
-  id        String    @id @default(uuid())
-  artists   Artist[]  @relation("ArtistToFavorites")
-  albums    Album[]   @relation("AlbumToFavorites")
-  tracks    Track[]   @relation("TrackToFavorites")
+  id      String   @id @default(uuid())
+  artists String[] @default([])
+  albums  String[] @default([])
+  tracks  String[] @default([])
+
+  @@map("favorites")
 }

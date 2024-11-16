@@ -1,7 +1,5 @@
 import {
   BadRequestException,
-  forwardRef,
-  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,82 +7,91 @@ import { CreateTrackDto } from './dto/create-track.dto';
 import { UpdateTrackDto } from './dto/update-track.dto';
 import { Track } from './entities/track.entity';
 import { validate } from 'uuid';
-import { FavoritesService } from 'src/favorites/favorites.service';
-import { FavoritesType } from 'src/favorites/types/types';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class TrackService {
-  public db: Map<string, Track>;
-
-  constructor(
-    @Inject(forwardRef(() => FavoritesService))
-    private favoritesService: FavoritesService,
-  ) {
-    this.db = new Map<string, Track>();
-  }
+  constructor(private prisma: PrismaService) {}
 
   async create(createTrackDto: CreateTrackDto): Promise<Track> {
     const { name, albumId, duration, artistId } = createTrackDto;
 
-    const track = new Track(name, duration, artistId || null, albumId || null);
-
-    this.db.set(track.id, track);
-
-    return track;
+    try {
+      return await this.prisma.track.create({
+        data: {
+          name,
+          duration,
+          artistId: artistId || null,
+          albumId: albumId || null,
+        },
+      });
+    } catch (error) {
+      if (error.code === 'P2003') {
+        throw new BadRequestException('Invalid artist or album reference');
+      }
+      throw error;
+    }
   }
 
-  async findAll(): Promise<Track[]> {
-    return Array.from(this.db.values());
+  async findAll() {
+    return this.prisma.track.findMany();
   }
 
   async findOne(id: string) {
     if (!validate(id)) {
       throw new BadRequestException('UUID is not valid');
     }
-    const track = this.db.get(id);
+
+    const track = await this.prisma.track.findUnique({
+      where: { id },
+    });
 
     if (!track) {
       throw new NotFoundException(`Track with ID ${id} not found`);
     }
+
     return track;
   }
 
   async update(id: string, updateTrackDto: UpdateTrackDto) {
-    const { name, duration, artistId, albumId } = updateTrackDto;
     if (!validate(id)) {
       throw new BadRequestException('UUID is not valid');
     }
 
-    const track = await this.findOne(id);
+    const { name, duration, artistId, albumId } = updateTrackDto;
 
-    if (!track) {
-      throw new NotFoundException(`Track with ID ${id} not found`);
+    if (artistId && !validate(artistId)) {
+      throw new BadRequestException('Artist UUID is not valid');
     }
 
-    if (name !== undefined) {
-      track.name = name;
+    if (albumId && !validate(albumId)) {
+      throw new BadRequestException('Album UUID is not valid');
     }
 
-    if (duration !== undefined) {
-      track.duration = duration;
-    }
-
-    if (artistId !== undefined) {
-      if (artistId && !validate(artistId)) {
-        throw new BadRequestException('Artist UUID is not valid');
+    try {
+      const existingTrack = await this.prisma.track.findUnique({
+        where: { id },
+      });
+      if (!existingTrack) {
+        throw new NotFoundException(`Track with ID ${id} does not exist.`);
       }
-      track.artistId = artistId;
-    }
+      const track = await this.prisma.track.update({
+        where: { id },
+        data: {
+          name,
+          duration,
+          artistId: artistId === undefined ? undefined : artistId || null,
+          albumId: albumId === undefined ? undefined : albumId || null,
+        },
+      });
 
-    if (albumId) {
-      if (albumId && !validate(albumId)) {
-        throw new BadRequestException('Album UUID is not valid');
+      return track;
+    } catch (error) {
+      if (error.code === 'P2003') {
+        throw new BadRequestException('Invalid artist or album reference');
       }
-      track.albumId = albumId;
+      throw error;
     }
-
-    this.db.set(id, track);
-    return track;
   }
 
   async remove(id: string) {
@@ -92,32 +99,45 @@ export class TrackService {
       throw new BadRequestException('UUID is not valid');
     }
 
-    const track = await this.findOne(id);
+    try {
+      await this.findOne(id);
+      await this.prisma.$transaction(async (tx) => {
+        const favoritesList = await tx.favorites.findMany({
+          where: { tracks: { has: id } },
+        });
 
-    if (!track) {
-      throw new NotFoundException(`Track with ID ${id} not found`);
+        for (const favorite of favoritesList) {
+          await tx.favorites.update({
+            where: { id: favorite.id },
+            data: {
+              tracks: {
+                set: favorite.tracks.filter((trackId) => trackId !== id),
+              },
+            },
+          });
+        }
+
+        await tx.track.delete({
+          where: { id },
+        });
+      });
+    } catch (error) {
+      if (error.code === 'P2025') {
+        throw new NotFoundException(`Track with ID ${id} not found`);
+      }
+      throw error;
     }
-
-    await this.removeTrackFromFavorites(id);
-
-    this.db.delete(id);
   }
 
-  async removeTrackFromFavorites(trackId: string) {
-    if (this.favoritesService.IsThereTrack(trackId)) {
-      await this.favoritesService.deleteFavorite(trackId, FavoritesType.TRACK);
-    }
+  async getTracksByArtistId(artistId: string) {
+    return this.prisma.track.findMany({
+      where: { artistId },
+    });
   }
 
-  async getTracksByArtistId(artistId: string): Promise<Track[]> {
-    return Array.from(this.db.values()).filter(
-      (album) => album.artistId === artistId,
-    );
-  }
-
-  async getTracksByAlbumId(albumId: string): Promise<Track[]> {
-    return Array.from(this.db.values()).filter(
-      (album) => album.albumId === albumId,
-    );
+  async getTracksByAlbumId(albumId: string) {
+    return this.prisma.track.findMany({
+      where: { albumId },
+    });
   }
 }

@@ -28,3 +28,12 @@ export class User implements IUser {
 }
 
 export type UserResponse = Omit<User, 'password'>;
+
+export type PrismaUser = {
+  id: string;
+  login: string;
+  password: string;
+  version: number;
+  createdAt: bigint;
+  updatedAt: bigint;
+};
