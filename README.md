@@ -13,7 +13,9 @@ bash
 
 ```
 git clone https://github.com/Bozorovvv/nodejs2024Q3-service
+```
 
+```
 cd nodejs2024Q3-service
 ```
 
@@ -69,15 +71,15 @@ DOCKER_POSTGRES_CONF_PATH=H:/docker/postgresql/conf
 
 ### Running with Docker
 
-```
-# Start the application
-npm run docker
-```
-
 - This runs the application inside a Docker container and makes it available on localhost:5000.
 
 ```
-# Stop the application
+npm run docker
+```
+
+- This stops the application inside a Docker container.
+
+```
 npm run docker:stop
 ```
 
@@ -85,7 +87,6 @@ npm run docker:stop
 
 ```
 npm start
-
 ```
 
 - This runs the application directly on your local machine, making it available on localhost:4000.
@@ -115,11 +116,15 @@ npm run test -- <path to suite>
 
 ### Auto-fix and format
 
-```
 # Run linting
+
+```
 npm run lint
+```
 
 # Run formatting
+
+```
 npm run format
 ```
 
@@ -132,20 +137,27 @@ npm run format
 
 If you encounter issues with Docker:
 
-```
 # View container status
+
+```
 docker compose ps
+```
 
 # Check container logs
 
+```
 docker compose logs
+```
 
 # Restart services
 
+```
 docker compose restart
+```
 
 # Complete reset
 
+```
 docker compose down -v
 docker compose up -d
 ```
