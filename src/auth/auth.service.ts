@@ -51,7 +51,8 @@ export class AuthService {
       },
     });
 
-    return this.generateTokens(user.id, user.login);
+    const tokens = await this.generateTokens(user.id, user.login);
+    return { id: user.id, ...tokens };
   }
 
   async login(dto: AuthDto) {
@@ -70,6 +71,7 @@ export class AuthService {
 
     return this.generateTokens(user.id, user.login);
   }
+
   async refresh(dto: RefreshTokenDto) {
     if (!dto.refreshToken) {
       throw new UnauthorizedException('Refresh token is required');
@@ -82,7 +84,13 @@ export class AuthService {
       ) as {
         userId: string;
         login: string;
+        exp: number;
       };
+
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      if (decoded.exp && decoded.exp < currentTimestamp) {
+        throw new ForbiddenException('Refresh token has expired');
+      }
 
       const user = await this.prisma.user.findUnique({
         where: { id: decoded.userId },
@@ -94,7 +102,13 @@ export class AuthService {
 
       return this.generateTokens(user.id, user.login);
     } catch (error) {
-      throw new ForbiddenException('Invalid refresh token');
+      if (error instanceof jwt.TokenExpiredError) {
+        throw new ForbiddenException('Refresh token has expired');
+      }
+      if (error instanceof jwt.JsonWebTokenError) {
+        throw new ForbiddenException('Invalid refresh token');
+      }
+      throw error;
     }
   }
 }

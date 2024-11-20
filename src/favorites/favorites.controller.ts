@@ -12,8 +12,8 @@ import { FavoritesService } from './favorites.service';
 import { FavoritesType } from './types/types';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 
-@UseGuards(AuthGuard)
 @Controller('favs')
+@UseGuards(AuthGuard)
 export class FavoritesController {
   constructor(private readonly favoritesService: FavoritesService) {}
 
